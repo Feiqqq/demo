@@ -4,7 +4,8 @@ import com.example.demo.model.Temperature;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -18,7 +19,9 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public class TemperatureController {
     private final Set<SseEmitter> clients = new CopyOnWriteArraySet<>();
 
-    @GetMapping("/temperature-stream")
+    @RequestMapping(
+            value = "/temp", // (2)
+            method = RequestMethod.GET)
     public SseEmitter events(HttpServletRequest request) {
         SseEmitter emitter = new SseEmitter();
         clients.add(emitter);
@@ -29,13 +32,12 @@ public class TemperatureController {
 
     @Async
     @EventListener
-    public void handleMessage(Temperature temperature){
+    public void handleMessage(Temperature temperature) {
         List<SseEmitter> deadEmitters = new ArrayList<>();
-        clients.forEach(emitter->{
-            try{
+        clients.forEach(emitter -> {
+            try {
                 emitter.send(temperature, MediaType.APPLICATION_JSON);
-            }
-            catch (Exception ignore){
+            } catch (Exception ignore) {
                 deadEmitters.add(emitter);
             }
         });
